@@ -26,7 +26,7 @@ public class CourseService {
       return courseRepository.findById(id);
   }
 
-  public Course save(Course course)
+  public Course craeteCourse(Course course)
   {
       return courseRepository.save(course);
   }
@@ -40,6 +40,7 @@ public class CourseService {
   {
       courseRepository.delete(course);
   }
+
 
 
 }

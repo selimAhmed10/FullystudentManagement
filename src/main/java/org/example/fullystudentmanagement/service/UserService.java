@@ -1,12 +1,11 @@
 package org.example.fullystudentmanagement.service;
 
-import jakarta.validation.constraints.Null;
 import org.example.fullystudentmanagement.model.User;
 import org.example.fullystudentmanagement.repository.UserRepository;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import javax.swing.text.html.Option;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,10 +24,6 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public List<User> findAll()
-    {
-        return userRepository.findAll();
-    }
 
     public Optional<User> findByEmail(String email)
     {
@@ -49,8 +44,13 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    public void deleteUser(User user)
-    {
-        userRepository.delete(user);
+
+
+    public void deleteUser(Long id) {
+        userRepository.deleteById(id);
+    }
+
+    public ResponseEntity<List<User>> findAllusers() {
+        return ResponseEntity.ok().body(userRepository.findAll());
     }
 }

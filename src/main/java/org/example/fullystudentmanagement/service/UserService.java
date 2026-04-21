@@ -50,7 +50,8 @@ public class UserService {
         userRepository.deleteById(id);
     }
 
-    public ResponseEntity<List<User>> findAllusers() {
-        return ResponseEntity.ok().body(userRepository.findAll());
+   public List<User> findAllUsers()
+    {
+        return userRepository.findAll();
     }
 }

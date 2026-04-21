@@ -1,5 +1,6 @@
 package org.example.fullystudentmanagement.repository;
 
+import org.example.fullystudentmanagement.model.Assignment;
 import org.example.fullystudentmanagement.model.Course;
 import org.example.fullystudentmanagement.model.Submission;
 import org.example.fullystudentmanagement.model.User;
@@ -10,7 +11,9 @@ import java.util.List;
 import java.util.Optional;
 @Repository
 public interface SubmissionRepository extends JpaRepository<Submission, Long> {
-    List<Submission> findByCourse(Course course);
+    List<Submission> findByAssignment(Assignment assignment);
     List<Submission> findByStudent(User student);
     Optional<Submission> findByStudentAndCourse(User student, Course course);
+
+
 }

@@ -17,11 +17,11 @@ public class CourseService {
         this.courseRepository = courseRepository;
     }
 
-    public List<Course> findAll(){
+    public List<Course> getAllCourses(){
         return courseRepository.findAll();
     }
 
-  public Optional<Course> findById(Long id)
+  public Optional<Course> getCourseById(Long id)
   {
       return courseRepository.findById(id);
   }
@@ -41,6 +41,10 @@ public class CourseService {
       courseRepository.delete(course);
   }
 
+
+    public void deleteCourse(Long id) {
+        courseRepository.deleteById(id);
+    }
 
 
 }

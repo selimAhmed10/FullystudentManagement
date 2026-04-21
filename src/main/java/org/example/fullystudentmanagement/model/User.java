@@ -6,24 +6,21 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.boot.autoconfigure.AutoConfigurationPackage;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import java.time.LocalDateTime;
 
 @Entity
-@AutoConfigurationPackage@EnableAutoConfiguration
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "users")
-
-
 public class User {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    private Long id;  // Changed: long to Long (wrapper type is better for JPA)
 
     @NotBlank
-    private String namme;
+    private String name;  // FIXED: was "namme"
 
     @Email
     @Column(unique = true)
@@ -37,4 +34,16 @@ public class User {
 
     private String studentGradeLevel;
     private String teacherSubject;
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;  // ADDED: missing field
+
+    // Custom constructor without id and createdAt
+    public User(String name, String email, String password, Role role) {
+        this.name = name;
+        this.email = email;
+        this.password = password;
+        this.role = role;
+        this.createdAt = LocalDateTime.now();
+    }
 }

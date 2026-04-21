@@ -1,5 +1,6 @@
 package org.example.fullystudentmanagement.service;
 
+import org.example.fullystudentmanagement.model.Assignment;
 import org.example.fullystudentmanagement.model.Course;
 import org.example.fullystudentmanagement.model.Submission;
 import org.example.fullystudentmanagement.model.User;
@@ -28,9 +29,9 @@ public class SubmissionService {
         return submissionRepository.findByStudent(student);
     }
 
-    public List<Submission> getAllSubmissionByCourse(Course course) {
+    public List<Submission> getAllSubmissionByAssignment(Assignment assignment) {
 
-        return submissionRepository.findByCourse(course);
+        return submissionRepository.findByAssignment(assignment);
     }
 
     public Optional<Submission> getSubmissionByStudentAndCourse(User student, Course course) {
@@ -46,5 +47,8 @@ public class SubmissionService {
     }
 
 
+    public Submission createSubmission(Submission submission) {
+        return submissionRepository.save(submission);
+    }
 
 }

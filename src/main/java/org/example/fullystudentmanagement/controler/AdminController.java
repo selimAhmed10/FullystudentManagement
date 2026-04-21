@@ -26,9 +26,9 @@ public class AdminController
     }
 
     @GetMapping("/users")
-    public ResponseEntity<List<User>> getAllUsers()
+   public List<User>  findAllUsers()
     {
-         return userService.findAllusers();
+        return userService.findAllUsers();
     }
 
     @GetMapping("/users/{id}")
@@ -60,13 +60,13 @@ public class AdminController
     @GetMapping("/courses")
     public List<Course> getAllCourses()
     {
-        return courseService.findAll();
+        return courseService.getAllCourses();
     }
 
     @GetMapping("/courses/{id]")
         public ResponseEntity<Course> getCourseById(@PathVariable Long id)
         {
-            return courseService.findById(id).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+            return courseService.getCourseById(id).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
         }
 
     @PostMapping("/courses")
@@ -77,9 +77,17 @@ public class AdminController
     @PutMapping("/courses/{id}")
     public ResponseEntity<Course> updateCourse(@PathVariable Long id, @RequestBody Course course)
     {
-      if (!courseService.findById(id).isPresent()) return ResponseEntity.notFound().build();
+      if (!courseService.getCourseById(id).isPresent()) return ResponseEntity.notFound().build();
       course.setId(id);
       return new ResponseEntity<>(courseService.update(course), HttpStatus.OK);
+    }
+
+    @DeleteMapping("/courses/{id]")
+    public ResponseEntity<Course> deleteCourse(@PathVariable Long id)
+    {
+        if (!courseService.getCourseById(id).isPresent()) return ResponseEntity.notFound().build();
+        courseService.deleteCourse(id);
+        return ResponseEntity.noContent().build();
     }
 
 

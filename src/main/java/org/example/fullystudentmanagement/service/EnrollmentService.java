@@ -53,4 +53,7 @@ public class EnrollmentService {
         }
 
 
+    public List<Enrollment> getEnrollmentsByStudent(User student) {
+        return enrollmentRepository.findByStudent(student);
+    }
 }

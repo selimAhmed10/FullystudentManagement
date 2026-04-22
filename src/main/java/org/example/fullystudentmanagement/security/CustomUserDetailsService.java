@@ -19,7 +19,6 @@ public class CustomUserDetailsService implements UserDetailsService {
         this.userRepository = userRepository;
     }
 
-    // ইমেইল দিয়ে ইউজার লোড করে Spring Security এর UserDetails বানানো
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         User user = userRepository.findByEmail(email)

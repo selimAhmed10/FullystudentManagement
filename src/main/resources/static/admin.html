@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Student Management</title>
+    <link rel="stylesheet" href="/style.css">
+    <script src="/api.js"></script>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>👑 Admin Dashboard</h1>
+        <div class="user-panel">
+            <span>👋 Welcome, <strong id="displayUserName"></strong></span>
+            <span class="user-role" id="displayUserRole"></span>
+            <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+        </div>
+    </div>
+    <div class="main">
+        <!-- Users Management Section -->
+        <div class="card">
+            <h3>👥 User Management</h3>
+            <button class="action-btn add-btn" id="showUserFormBtn">➕ Add New User</button>
+            <div id="userListContainer"></div>
+            <div id="userFormContainer" style="display: none;">
+                <form id="userForm">
+                    <h4 id="userFormTitle">Create New User</h4>
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label for="userFullName">Full Name</label>
+                            <input type="text" id="userFullName" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="userEmailAddress">Email</label>
+                            <input type="email" id="userEmailAddress" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label for="userPasswordValue">Password</label>
+                            <input type="password" id="userPasswordValue" placeholder="Leave blank to keep unchanged">
+                        </div>
+                        <div class="input-group">
+                            <label for="userRoleSelection">Role</label>
+                            <select id="userRoleSelection">
+                                <option value="STUDENT">Student</option>
+                                <option value="TEACHER">Teacher</option>
+                                <option value="ADMIN">Admin</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label for="studentGradeLevelInput">Grade Level (Student only)</label>
+                            <input type="text" id="studentGradeLevelInput" placeholder="e.g., Freshman, Sophomore">
+                        </div>
+                        <div class="input-group">
+                            <label for="teacherSubjectInput">Subject (Teacher only)</label>
+                            <input type="text" id="teacherSubjectInput" placeholder="e.g., Mathematics">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <button type="submit">💾 Save User</button>
+                        <button type="button" id="cancelUserFormBtn" class="btn-danger">❌ Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Courses Management Section -->
+        <div class="card">
+            <h3>📚 Course Management</h3>
+            <button class="action-btn add-btn" id="showCourseFormBtn">➕ Add New Course</button>
+            <div id="courseListContainer"></div>
+            <div id="courseFormContainer" style="display: none;">
+                <form id="courseForm">
+                    <h4 id="courseFormTitle">Create New Course</h4>
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label for="courseNameInput">Course Name</label>
+                            <input type="text" id="courseNameInput" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="courseFeeInput">Fee ($)</label>
+                            <input type="number" id="courseFeeInput" step="0.01" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="input-group">
+                            <label for="courseScheduleInput">Schedule</label>
+                            <input type="text" id="courseScheduleInput" placeholder="e.g., Mon/Wed 10:00-12:00">
+                        </div>
+                        <div class="input-group">
+                            <label for="courseTeacherIdInput">Teacher ID</label>
+                            <input type="number" id="courseTeacherIdInput" placeholder="Enter teacher ID">
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label for="courseDescriptionInput">Description</label>
+                        <textarea id="courseDescriptionInput" rows="3" placeholder="Course description..."></textarea>
+                    </div>
+                    <div class="form-row">
+                        <button type="submit">💾 Save Course</button>
+                        <button type="button" id="cancelCourseFormBtn" class="btn-danger">❌ Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let editingUserId = null;
+    let editingCourseId = null;
+
+    // Wait for DOM to be fully loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize dashboard
+        const userInfo = checkAuth();
+        if (userInfo && userInfo.role !== 'ADMIN') {
+            alert('Access denied. Admins only.');
+            logout();
+            return;
+        }
+
+        // Set user name and role - FIXED: Using the correct element IDs
+        const userNameElement = document.getElementById('displayUserName');
+        const userRoleElement = document.getElementById('displayUserRole');
+
+        if (userNameElement) {
+            userNameElement.innerText = localStorage.getItem('userName') || 'Admin';
+        }
+        if (userRoleElement) {
+            userRoleElement.innerText = userInfo ? userInfo.role : 'ADMIN';
+        }
+
+        loadUsers();
+        loadCourses();
+        setupEventListeners();
+    });
+
+    function setupEventListeners() {
+        // User form event listeners
+        const showUserFormBtn = document.getElementById('showUserFormBtn');
+        const cancelUserFormBtn = document.getElementById('cancelUserFormBtn');
+        const userForm = document.getElementById('userForm');
+
+        if (showUserFormBtn) {
+            showUserFormBtn.addEventListener('click', () => {
+                editingUserId = null;
+                document.getElementById('userForm').reset();
+                document.getElementById('userFormTitle').innerText = 'Create New User';
+                document.getElementById('userFormContainer').style.display = 'block';
+                showUserFormBtn.style.display = 'none';
+            });
+        }
+
+        if (cancelUserFormBtn) {
+            cancelUserFormBtn.addEventListener('click', () => {
+                document.getElementById('userFormContainer').style.display = 'none';
+                if (showUserFormBtn) showUserFormBtn.style.display = 'inline-block';
+            });
+        }
+
+        if (userForm) {
+            userForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const userData = {
+                    name: document.getElementById('userFullName').value,
+                    email: document.getElementById('userEmailAddress').value,
+                    password: document.getElementById('userPasswordValue').value,
+                    role: document.getElementById('userRoleSelection').value,
+                    studentGradeLevel: document.getElementById('studentGradeLevelInput').value,
+                    teacherSubject: document.getElementById('teacherSubjectInput').value
+                };
+                try {
+                    if (editingUserId) {
+                        await apiRequest(`/api/admin/users/${editingUserId}`, 'PUT', userData);
+                    } else {
+                        await apiRequest('/api/admin/users', 'POST', userData);
+                    }
+                    loadUsers();
+                    if (cancelUserFormBtn) cancelUserFormBtn.click();
+                    showSuccess('userListContainer', 'User saved successfully');
+                } catch (error) {
+                    alert(error.message);
+                }
+            });
+        }
+
+        // Course form event listeners
+        const showCourseFormBtn = document.getElementById('showCourseFormBtn');
+        const cancelCourseFormBtn = document.getElementById('cancelCourseFormBtn');
+        const courseForm = document.getElementById('courseForm');
+
+        if (showCourseFormBtn) {
+            showCourseFormBtn.addEventListener('click', () => {
+                editingCourseId = null;
+                document.getElementById('courseForm').reset();
+                document.getElementById('courseFormTitle').innerText = 'Create New Course';
+                document.getElementById('courseFormContainer').style.display = 'block';
+                showCourseFormBtn.style.display = 'none';
+            });
+        }
+
+        if (cancelCourseFormBtn) {
+            cancelCourseFormBtn.addEventListener('click', () => {
+                document.getElementById('courseFormContainer').style.display = 'none';
+                if (showCourseFormBtn) showCourseFormBtn.style.display = 'inline-block';
+            });
+        }
+
+        if (courseForm) {
+            courseForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const courseData = {
+                    name: document.getElementById('courseNameInput').value,
+                    fee: parseFloat(document.getElementById('courseFeeInput').value),
+                    schedule: document.getElementById('courseScheduleInput').value,
+                    description: document.getElementById('courseDescriptionInput').value,
+                    teacher: document.getElementById('courseTeacherIdInput').value ?
+                        { id: parseInt(document.getElementById('courseTeacherIdInput').value) } : null
+                };
+                try {
+                    if (editingCourseId) {
+                        await apiRequest(`/api/admin/courses/${editingCourseId}`, 'PUT', courseData);
+                    } else {
+                        await apiRequest('/api/admin/courses', 'POST', courseData);
+                    }
+                    loadCourses();
+                    if (cancelCourseFormBtn) cancelCourseFormBtn.click();
+                    showSuccess('courseListContainer', 'Course saved successfully');
+                } catch (error) {
+                    alert(error.message);
+                }
+            });
+        }
+    }
+
+    // Load all users
+    async function loadUsers() {
+        try {
+            const users = await apiRequest('/api/admin/users', 'GET');
+            const container = document.getElementById('userListContainer');
+            if (!container) return;
+
+            if (!users || users.length === 0) {
+                container.innerHTML = '<p style="text-align: center;">No users found.</p>';
+                return;
+            }
+
+            let html = '<table>\n<thead>\n<tr>\n<th>ID</th>\n<th>Name</th>\n<th>Email</th>\n<th>Role</th>\n<th>Grade/Subject</th>\n<th>Actions</th>\n</tr>\n</thead>\n<tbody>\n';
+
+            users.forEach(user => {
+                let extra = user.role === 'STUDENT' ? (user.studentGradeLevel || '-') : (user.teacherSubject || '-');
+                html += `<tr>
+                    <td data-label="ID">${user.id}</td>
+                    <td data-label="Name">${user.name}</td>
+                    <td data-label="Email">${user.email}</td>
+                    <td data-label="Role">${user.role}</td>
+                    <td data-label="Grade/Subject">${extra}</td>
+                    <td data-label="Actions">
+                        <button class="action-btn edit-btn" onclick="editUser(${user.id})">✏️ Edit</button>
+                        <button class="action-btn delete-btn" onclick="deleteUser(${user.id})">🗑️ Delete</button>
+                    </td>
+                </tr>\n`;
+            });
+
+            html += '</tbody>\n</table>';
+            container.innerHTML = html;
+        } catch (error) {
+            showError('userListContainer', error.message);
+        }
+    }
+
+    // Edit user
+    async function editUser(id) {
+        try {
+            const users = await apiRequest('/api/admin/users', 'GET');
+            const user = users.find(u => u.id === id);
+            if (!user) return;
+
+            editingUserId = id;
+            document.getElementById('userFullName').value = user.name;
+            document.getElementById('userEmailAddress').value = user.email;
+            document.getElementById('userRoleSelection').value = user.role;
+            document.getElementById('studentGradeLevelInput').value = user.studentGradeLevel || '';
+            document.getElementById('teacherSubjectInput').value = user.teacherSubject || '';
+            document.getElementById('userPasswordValue').value = '';
+            document.getElementById('userFormTitle').innerText = 'Edit User';
+            document.getElementById('userFormContainer').style.display = 'block';
+            document.getElementById('showUserFormBtn').style.display = 'none';
+        } catch (error) {
+            alert(error.message);
+        }
+    }
+
+    // Delete user
+    async function deleteUser(id) {
+        if (!confirm('Are you sure you want to delete this user?')) return;
+        try {
+            await apiRequest(`/api/admin/users/${id}`, 'DELETE');
+            loadUsers();
+            showSuccess('userListContainer', 'User deleted successfully');
+        } catch (error) {
+            alert(error.message);
+        }
+    }
+
+    // Load all courses
+    async function loadCourses() {
+        try {
+            const courses = await apiRequest('/api/admin/courses', 'GET');
+            const container = document.getElementById('courseListContainer');
+            if (!container) return;
+
+            if (!courses || courses.length === 0) {
+                container.innerHTML = '<p style="text-align: center;">No courses found.</p>';
+                return;
+            }
+
+            let html = '<table>\n<thead>\n<tr>\n<th>ID</th>\n<th>Name</th>\n<th>Fee</th>\n<th>Schedule</th>\n<th>Description</th>\n<th>Actions</th>\n</tr>\n</thead>\n<tbody>\n';
+
+            courses.forEach(course => {
+                html += `<tr>
+                    <td data-label="ID">${course.id}</td>
+                    <td data-label="Name">${course.name}</td>
+                    <td data-label="Fee">$${course.fee}</td>
+                    <td data-label="Schedule">${course.schedule || '-'}</td>
+                    <td data-label="Description">${course.description || '-'}</td>
+                    <td data-label="Actions">
+                        <button class="action-btn edit-btn" onclick="editCourse(${course.id})">✏️ Edit</button>
+                        <button class="action-btn delete-btn" onclick="deleteCourse(${course.id})">🗑️ Delete</button>
+                    </td>
+                </tr>\n`;
+            });
+
+            html += '</tbody>\n</table>';
+            container.innerHTML = html;
+        } catch (error) {
+            showError('courseListContainer', error.message);
+        }
+    }
+
+    // Edit course
+    async function editCourse(id) {
+        try {
+            const courses = await apiRequest('/api/admin/courses', 'GET');
+            const course = courses.find(c => c.id === id);
+            if (!course) return;
+
+            editingCourseId = id;
+            document.getElementById('courseNameInput').value = course.name;
+            document.getElementById('courseFeeInput').value = course.fee;
+            document.getElementById('courseScheduleInput').value = course.schedule || '';
+            document.getElementById('courseDescriptionInput').value = course.description || '';
+            document.getElementById('courseTeacherIdInput').value = course.teacher ? course.teacher.id : '';
+            document.getElementById('courseFormTitle').innerText = 'Edit Course';
+            document.getElementById('courseFormContainer').style.display = 'block';
+            document.getElementById('showCourseFormBtn').style.display = 'none';
+        } catch (error) {
+            alert(error.message);
+        }
+    }
+
+    // Delete course
+    async function deleteCourse(id) {
+        if (!confirm('Are you sure you want to delete this course?')) return;
+        try {
+            await apiRequest(`/api/admin/courses/${id}`, 'DELETE');
+            loadCourses();
+            showSuccess('courseListContainer', 'Course deleted successfully');
+        } catch (error) {
+            alert(error.message);
+        }
+    }
+</script>
+</body>
+</html>

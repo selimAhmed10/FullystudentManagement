@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - Student Management</title>
+    <link rel="stylesheet" href="/style.css">
+    <script src="/api.js"></script>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🎓 Student Dashboard</h1>
+        <div class="user-panel">
+            <span>👋 Welcome, <span id="userName"></span></span>
+            <span class="user-role" id="userRole"></span>
+            <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+        </div>
+    </div>
+    <div class="main">
+        <!-- Profile Section -->
+        <div class="card">
+            <h3>👤 My Profile</h3>
+            <div id="profile"></div>
+        </div>
+
+        <!-- Available Courses -->
+        <div class="card">
+            <h3>📚 Available Courses</h3>
+            <div id="availableCourses"></div>
+        </div>
+
+        <!-- My Enrolled Courses -->
+        <div class="card">
+            <h3>📅 My Courses & Schedule</h3>
+            <div id="myCourses"></div>
+        </div>
+
+        <!-- Deposit Fee -->
+        <div class="card">
+            <h3>💰 Deposit Course Fee</h3>
+            <div class="form-row">
+                <div class="input-group">
+                    <label>Course ID</label>
+                    <input type="number" id="depositCourseId" placeholder="Enter Course ID">
+                </div>
+                <div class="input-group">
+                    <label>Amount ($)</label>
+                    <input type="number" id="depositAmount" step="0.01" placeholder="Enter Amount">
+                </div>
+                <button id="depositBtn">💳 Make Payment</button>
+            </div>
+            <div id="depositMsg"></div>
+        </div>
+
+        <!-- My Assignments -->
+        <div class="card">
+            <h3>📝 My Assignments</h3>
+            <div id="assignmentsList"></div>
+        </div>
+
+        <!-- Submit Assignment -->
+        <div class="card">
+            <h3>📤 Submit Assignment</h3>
+            <div class="form-row">
+                <div class="input-group">
+                    <label>Assignment ID</label>
+                    <input type="number" id="submitAssignmentId" placeholder="Enter Assignment ID">
+                </div>
+                <div class="input-group">
+                    <label>Your Answer</label>
+                    <input type="text" id="answerText" placeholder="Type your answer here">
+                </div>
+                <button id="submitBtn">📤 Submit</button>
+            </div>
+            <div id="submitMsg"></div>
+        </div>
+
+        <!-- My Grades -->
+        <div class="card">
+            <h3>📊 My Grades</h3>
+            <div id="gradesList"></div>
+        </div>
+    </div>
+</div>
+<script>
+    // Load profile
+    async function loadProfile() {
+        try {
+            const profile = await apiRequest('/api/student/profile', 'GET');
+            document.getElementById('profile').innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                    <div><strong>📛 Name:</strong> ${profile.name}</div>
+                    <div><strong>📧 Email:</strong> ${profile.email}</div>
+                    <div><strong>🎓 Grade Level:</strong> ${profile.studentGradeLevel || 'Not set'}</div>
+                    <div><strong>📅 Joined:</strong> ${new Date(profile.createdAt).toLocaleDateString()}</div>
+                </div>
+            `;
+        } catch (error) {
+            showError('profile', error.message);
+        }
+    }
+
+    // Load available courses
+    async function loadAvailableCourses() {
+        try {
+            const courses = await apiRequest('/api/student/courses', 'GET');
+            const container = document.getElementById('availableCourses');
+            if (!courses || courses.length === 0) {
+                container.innerHTML = '<p style="text-align: center;">No courses available.</p>';
+                return;
+            }
+            let html = `<table>
+                <thead>
+                    <tr>
+                        <th>ID</th><th>Course Name</th><th>Schedule</th><th>Fee</th><th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+            courses.forEach(c => {
+                html += `<tr>
+                    <td data-label="ID">${c.id}</td>
+                    <td data-label="Course Name">${c.name}</td>
+                    <td data-label="Schedule">${c.schedule || '-'}</td>
+                    <td data-label="Fee">$${c.fee}</td>
+                    <td data-label="Action">
+                        <button class="action-btn add-btn" onclick="enrollCourse(${c.id})">➕ Enroll</button>
+                    </td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        } catch (error) {
+            showError('availableCourses', error.message);
+        }
+    }
+
+    // Enroll in course
+    window.enrollCourse = async (courseId) => {
+        try {
+            await apiRequest(`/api/student/enroll/${courseId}`, 'POST');
+            alert('✅ Successfully enrolled in course!');
+            loadMyCourses();
+        } catch (error) {
+            alert(error.message);
+        }
+    };
+
+    // Load my enrolled courses
+    async function loadMyCourses() {
+        try {
+            const enrollments = await apiRequest('/api/student/my-courses', 'GET');
+            const container = document.getElementById('myCourses');
+            if (!enrollments || enrollments.length === 0) {
+                container.innerHTML = '<p style="text-align: center;">You are not enrolled in any courses yet.</p>';
+                return;
+            }
+            let html = `<table>
+                <thead>
+                    <tr>
+                        <th>Course ID</th><th>Course Name</th><th>Schedule</th><th>Payment Status</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+            for (let e of enrollments) {
+                const course = e.course;
+                html += `<tr>
+                    <td data-label="Course ID">${course.id}</td>
+                    <td data-label="Course Name">${course.name}</td>
+                    <td data-label="Schedule">${course.schedule || '-'}</td>
+                    <td data-label="Payment Status">
+                        ${e.paid ? '✅ Paid' : '❌ Pending'}
+                     </td>
+                </tr>`;
+            }
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        } catch (error) {
+            showError('myCourses', error.message);
+        }
+    }
+
+    // Deposit fee
+    document.getElementById('depositBtn').addEventListener('click', async () => {
+        const courseId = document.getElementById('depositCourseId').value;
+        const amount = document.getElementById('depositAmount').value;
+        if (!courseId || !amount) {
+            alert('Please enter Course ID and Amount');
+            return;
+        }
+        try {
+            await apiRequest(`/api/student/deposit?courseId=${courseId}&amount=${amount}`, 'POST');
+            showSuccess('depositMsg', 'Payment successful!');
+            loadMyCourses();
+            setTimeout(() => document.getElementById('depositMsg').innerHTML = '', 3000);
+        } catch (error) {
+            showError('depositMsg', error.message);
+        }
+    });
+
+    // Load assignments
+    async function loadAssignments() {
+        try {
+            const assignments = await apiRequest('/api/student/assignments', 'GET');
+            const container = document.getElementById('assignmentsList');
+            if (!assignments || assignments.length === 0) {
+                container.innerHTML = '<p style="text-align: center;">No assignments available.</p>';
+                return;
+            }
+            let html = `</table>
+                <thead>
+                    <tr>
+                        <th>ID</th><th>Title</th><th>Course</th><th>Due Date</th><th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+            assignments.forEach(a => {
+                html += `<tr>
+                    <td data-label="ID">${a.id}</td>
+                    <td data-label="Title">${a.title}</td>
+                    <td data-label="Course">${a.course.name}</td>
+                    <td data-label="Due Date">${a.dueDate ? new Date(a.dueDate).toLocaleString() : '-'}</td>
+                    <td data-label="Description">${a.description || '-'}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        } catch (error) {
+            showError('assignmentsList', error.message);
+        }
+    }
+
+    // Submit assignment
+    document.getElementById('submitBtn').addEventListener('click', async () => {
+        const assignmentId = document.getElementById('submitAssignmentId').value;
+        const answer = document.getElementById('answerText').value;
+        if (!assignmentId || !answer) {
+            alert('Please enter Assignment ID and your answer');
+            return;
+        }
+        try {
+            await apiRequest('/api/student/submissions', 'POST', {
+                assignment: { id: parseInt(assignmentId) },
+                answerText: answer
+            });
+            showSuccess('submitMsg', 'Assignment submitted successfully!');
+            document.getElementById('answerText').value = '';
+            loadGrades();
+            setTimeout(() => document.getElementById('submitMsg').innerHTML = '', 3000);
+        } catch (error) {
+            showError('submitMsg', error.message);
+        }
+    });
+
+    // Load grades
+    async function loadGrades() {
+        try {
+            const submissions = await apiRequest('/api/student/my-submissions', 'GET');
+            const container = document.getElementById('gradesList');
+            if (!submissions || submissions.length === 0) {
+                container.innerHTML = '<p style="text-align: center;">No submissions yet.</p>';
+                return;
+            }
+            let html = `<table>
+                <thead>
+                    <tr>
+                        <th>Assignment</th><th>Your Answer</th><th>Grade</th><th>Feedback</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+            submissions.forEach(s => {
+                html += `<tr>
+                    <td data-label="Assignment">${s.assignment.title}</td>
+                    <td data-label="Your Answer">${s.answerText}</td>
+                    <td data-label="Grade">
+                        ${s.grade !== null ? `<span style="color: ${s.grade >= 60 ? '#06d6a0' : '#ef476f'}; font-weight: bold;">${s.grade}%</span>` : 'Not graded'}
+                    </td>
+                    <td data-label="Feedback">${s.feedback || '-'}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        } catch (error) {
+            showError('gradesList', error.message);
+        }
+    }
+
+    // Initialize
+    window.onload = () => {
+        const userInfo = checkAuth();
+        if (userInfo && userInfo.role !== 'STUDENT') {
+            alert('Access denied. Students only.');
+            logout();
+            return;
+        }
+        document.getElementById('userName').innerText = localStorage.getItem('userName') || '';
+        document.getElementById('userRole').innerText = userInfo.role;
+        loadProfile();
+        loadAvailableCourses();
+        loadMyCourses();
+        loadAssignments();
+        loadGrades();
+    };
+</script>
+</body>
+</html>

@@ -14,7 +14,7 @@ import org.springframework.context.annotation.ComponentScan;
 
 
 @SpringBootApplication
-public class FullystudentManagementApplication {
+ class FullystudentManagementApplication {
 
 
     static void main(String[] args) {
